@@ -36,3 +36,15 @@ export const deleteMessage = async (messageId) => {
 export const editMessage = async (messageId, content) => {
   return await API.put("/message", { messageId, content });
 };
+
+export const getFileAccessUrl = async ({
+  fileUrl,
+  fileName,
+  download = false,
+}) => {
+  return await API.post("/message/file-url", {
+    fileUrl,
+    fileName,
+    download,
+  });
+};

@@ -95,12 +95,20 @@ function ChatSidebar({
                     </div>
                   </div>
 
-                  {u.isOnline && (
-                    <div className="mt-1 flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                      Online
-                    </div>
-                  )}
+                  <div
+                    className={`mt-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs ${
+                      u.isOnline
+                        ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+                        : "border border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        u.isOnline ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500"
+                      }`}
+                    />
+                    {u.isOnline ? "Online" : "Offline"}
+                  </div>
                 </div>
               </div>
             ))}
@@ -181,10 +189,22 @@ function ChatSidebar({
                     </div>
 
                     <div className="flex shrink-0 flex-col items-end gap-2">
-                      {!chat.isGroupChat && otherUser?.isOnline && (
-                        <div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
-                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                          Online
+                      {!chat.isGroupChat && (
+                        <div
+                          className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] ${
+                            otherUser?.isOnline
+                              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+                              : "border border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              otherUser?.isOnline
+                                ? "bg-emerald-500"
+                                : "bg-slate-400 dark:bg-slate-500"
+                            }`}
+                          />
+                          {otherUser?.isOnline ? "Online" : "Offline"}
                         </div>
                       )}
 

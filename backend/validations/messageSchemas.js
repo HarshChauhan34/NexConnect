@@ -53,3 +53,13 @@ export const allMessagesSchema = z.object({
     chatId: z.string().min(10),
   }),
 });
+
+export const fileAccessSchema = z.object({
+  body: z.object({
+    fileUrl: z.string().url(),
+    fileName: z.string().optional(),
+    download: z.boolean().optional().default(false),
+  }),
+  query: z.object({}).optional().default({}),
+  params: z.object({}).optional().default({}),
+});

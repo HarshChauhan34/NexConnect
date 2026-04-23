@@ -7,6 +7,7 @@ import {
   reactToMessage,
   deleteMessage,
   editMessage,
+  getFileAccessUrl,
 } from "../controllers/messageController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import upload from "../config/cloudinaryMulter.js";
@@ -18,11 +19,13 @@ import {
   markReadSchema,
   reactMessageSchema,
   sendMessageSchema,
+  fileAccessSchema,
 } from "../validations/messageSchemas.js";
 
 const router = express.Router();
 
 router.post("/upload", protect, upload.single("file"), uploadChatFile);
+router.post("/file-url", protect, validateRequest(fileAccessSchema), getFileAccessUrl);
 router.post("/read", protect, validateRequest(markReadSchema), markMessagesAsRead);
 router.post("/react", protect, validateRequest(reactMessageSchema), reactToMessage);
 router.post("/", protect, validateRequest(sendMessageSchema), sendMessage);

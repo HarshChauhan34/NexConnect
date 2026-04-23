@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getFileAccessUrl } from "../../services/messageService";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
@@ -56,6 +57,31 @@ function ChatWindow({
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getOpenableFileUrl = (url) => {
+    if (!url) return "";
+    // Backward-compatible fix for old messages saved with authenticated delivery URLs.
+    return url
+      .replace("/image/authenticated/", "/image/upload/")
+      .replace("/raw/authenticated/", "/raw/upload/");
+  };
+
+  const handleOpenFile = async (msg, download = false) => {
+    const fallbackUrl = getOpenableFileUrl(msg.fileUrl);
+    if (!fallbackUrl) return;
+
+    try {
+      const response = await getFileAccessUrl({
+        fileUrl: msg.fileUrl,
+        fileName: msg.fileName,
+        download,
+      });
+      const signedUrl = response?.data?.url || fallbackUrl;
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+    } catch {
+      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+    }
   };
 
   const startEditing = (msg) => {
@@ -270,11 +296,14 @@ function ChatWindow({
                             </p>
                           </>
                         ) : (
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {formatLastSeen(
-                              getOtherUser(selectedChat, user)?.lastSeen,
-                            )}
-                          </p>
+                          <>
+                            <span className="h-2.5 w-2.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {formatLastSeen(
+                                getOtherUser(selectedChat, user)?.lastSeen,
+                              )}
+                            </p>
+                          </>
                         )}
                       </div>
                     )}
@@ -365,7 +394,7 @@ function ChatWindow({
                           {msg.messageType === "image" ? (
                             <div className="space-y-3">
                               <img
-                                src={msg.fileUrl}
+                                src={getOpenableFileUrl(msg.fileUrl)}
                                 alt={msg.fileName || "chat image"}
                                 className="max-h-80 w-full rounded-2xl border border-slate-300 object-cover dark:border-slate-700"
                               />
@@ -374,49 +403,60 @@ function ChatWindow({
                                   {msg.fileName}
                                 </p>
                               )}
+                              {msg.content?.trim() && (
+                                <p className="break-words text-[15px] leading-relaxed">
+                                  {msg.content}
+                                </p>
+                              )}
                             </div>
                           ) : msg.messageType === "file" ? (
-                            <div
-                              className={`rounded-2xl p-3 ${
-                                isMine
-                                  ? "border border-white/30 bg-white/15"
-                                  : "border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
-                              }`}
-                            >
-                              <p
-                                className={`break-all text-sm font-medium ${
+                            <div className="space-y-3">
+                              <div
+                                className={`rounded-2xl p-3 ${
                                   isMine
-                                    ? "text-white"
-                                    : "text-slate-900 dark:text-slate-100"
+                                    ? "border border-white/30 bg-white/15"
+                                    : "border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
                                 }`}
                               >
-                                {msg.fileName || "File"}
-                              </p>
-                              <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                                <a
-                                  href={msg.fileUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className={`rounded-xl px-3 py-1.5 transition ${
+                                <p
+                                  className={`break-all text-sm font-medium ${
                                     isMine
-                                      ? "bg-white/20 text-white hover:bg-white/30"
-                                      : "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-200 dark:hover:bg-blue-500/30"
+                                      ? "text-white"
+                                      : "text-slate-900 dark:text-slate-100"
                                   }`}
                                 >
-                                  Open
-                                </a>
-                                <a
-                                  href={msg.fileUrl}
-                                  download={msg.fileName || "file"}
-                                  className={`rounded-xl px-3 py-1.5 transition ${
-                                    isMine
-                                      ? "bg-white/20 text-white hover:bg-white/30"
-                                      : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-200 dark:hover:bg-emerald-500/30"
-                                  }`}
-                                >
-                                  Download
-                                </a>
+                                  {msg.fileName || "File"}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenFile(msg, false)}
+                                    className={`rounded-xl px-3 py-1.5 transition ${
+                                      isMine
+                                        ? "bg-white/20 text-white hover:bg-white/30"
+                                        : "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-200 dark:hover:bg-blue-500/30"
+                                    }`}
+                                  >
+                                    Open
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenFile(msg, true)}
+                                    className={`rounded-xl px-3 py-1.5 transition ${
+                                      isMine
+                                        ? "bg-white/20 text-white hover:bg-white/30"
+                                        : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-200 dark:hover:bg-emerald-500/30"
+                                    }`}
+                                  >
+                                    Download
+                                  </button>
+                                </div>
                               </div>
+                              {msg.content?.trim() && (
+                                <p className="break-words text-[15px] leading-relaxed">
+                                  {msg.content}
+                                </p>
+                              )}
                             </div>
                           ) : isEditing ? (
                             <div className="space-y-3">

@@ -43,7 +43,7 @@ function NotificationMenu() {
                 className="inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-500"
               >
                 <CheckCheck size={14} />
-                Mark all
+                Mark all as read
               </button>
             </div>
 

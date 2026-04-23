@@ -1,6 +1,46 @@
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import Chat from "../models/Chat.js";
+import cloudinary from "../config/cloudinary.js";
+
+const extractCloudinaryAsset = (fileUrl = "") => {
+  const match =
+    fileUrl.match(
+      /\/(image|raw|video)\/(upload|authenticated|private)\/(?:v\d+\/)?([^?#]+)/i
+    ) ||
+    fileUrl
+      .replace("/image/authenticated/", "/image/upload/")
+      .replace("/raw/authenticated/", "/raw/upload/")
+      .match(
+    /\/(image|raw|video)\/(upload|authenticated|private)\/(?:v\d+\/)?([^?#]+)/i
+      );
+
+  if (!match) return null;
+
+  const resourceType = match[1].toLowerCase();
+  const deliveryType = match[2].toLowerCase();
+  const encodedPath = match[3];
+  const decodedPath = decodeURIComponent(encodedPath);
+
+  // Keep full decoded path for raw files to preserve extensions in public_id.
+  if (resourceType === "raw") {
+    return {
+      resourceType,
+      deliveryType,
+      publicId: decodedPath,
+    };
+  }
+
+  const lastDotIndex = decodedPath.lastIndexOf(".");
+  const lastSlashIndex = decodedPath.lastIndexOf("/");
+  const hasFormat = lastDotIndex > lastSlashIndex;
+
+  return {
+    resourceType,
+    deliveryType,
+    publicId: hasFormat ? decodedPath.slice(0, lastDotIndex) : decodedPath,
+  };
+};
 
 export const sendMessage = async (req, res) => {
   try {
@@ -71,9 +111,24 @@ export const uploadChatFile = async (req, res) => {
 
     const mimeType = req.file.mimetype || "";
     const isImage = mimeType.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
+    const publicId = req.file.filename || "";
+    const cloudinaryUrl = publicId
+      ? cloudinary.url(publicId, {
+          resource_type: resourceType,
+          type: "upload",
+          secure: true,
+        })
+      : null;
+
+    const deliveredFileUrl =
+      cloudinaryUrl ||
+      req.file.secure_url ||
+      req.file.path ||
+      "";
 
     return res.status(201).json({
-      fileUrl: req.file.path,
+      fileUrl: deliveredFileUrl,
       fileName: req.file.originalname,
       messageType: isImage ? "image" : "file",
     });
@@ -239,6 +294,37 @@ export const editMessage = async (req, res) => {
     return res.json(updatedMessage);
   } catch (error) {
     console.error("EDIT MESSAGE ERROR:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+export const getFileAccessUrl = async (req, res) => {
+  try {
+    const { fileUrl, fileName, download = false } = req.body;
+
+    if (!fileUrl) {
+      return res.status(400).json({ message: "File URL is required" });
+    }
+
+    const asset = extractCloudinaryAsset(fileUrl);
+    if (!asset) {
+      return res.status(400).json({ message: "Invalid Cloudinary file URL" });
+    }
+
+    const requiresSignedUrl =
+      asset.deliveryType === "authenticated" || asset.deliveryType === "private";
+
+    const signedUrl = cloudinary.url(asset.publicId, {
+      resource_type: asset.resourceType,
+      type: requiresSignedUrl ? asset.deliveryType : "upload",
+      secure: true,
+      sign_url: requiresSignedUrl,
+      attachment: download ? fileName || true : false,
+    });
+
+    return res.json({ url: signedUrl });
+  } catch (error) {
+    console.error("GET FILE ACCESS URL ERROR:", error);
     return res.status(500).json({ message: error.message });
   }
 };
