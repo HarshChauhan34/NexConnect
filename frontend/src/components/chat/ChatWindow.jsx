@@ -71,6 +71,22 @@ function ChatWindow({
     const fallbackUrl = getOpenableFileUrl(msg.fileUrl);
     if (!fallbackUrl) return;
 
+    const openedTab = window.open("", "_blank");
+    if (openedTab) {
+      openedTab.opener = null;
+      openedTab.document.title = "Opening file...";
+      openedTab.document.body.innerHTML =
+        '<p style="font-family: sans-serif; padding: 1rem;">Preparing your file...</p>';
+    }
+
+    const navigateToUrl = (url) => {
+      if (openedTab && !openedTab.closed) {
+        openedTab.location.replace(url);
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
+    };
+
     try {
       const response = await getFileAccessUrl({
         fileUrl: msg.fileUrl,
@@ -78,9 +94,9 @@ function ChatWindow({
         download,
       });
       const signedUrl = response?.data?.url || fallbackUrl;
-      window.open(signedUrl, "_blank", "noopener,noreferrer");
+      navigateToUrl(signedUrl);
     } catch {
-      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      navigateToUrl(fallbackUrl);
     }
   };
 

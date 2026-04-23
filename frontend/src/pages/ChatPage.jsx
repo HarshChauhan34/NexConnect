@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import ChatSidebar from "../components/chat/ChatSidebar";
@@ -112,6 +113,15 @@ function ChatPage() {
     setPendingAttachment,
   });
 
+  const handleSelectChat = useCallback(
+    (chat) => {
+      setSelectedChat(chat);
+      setMessages([]);
+      setLoadingMessages(Boolean(chat));
+    },
+    [setSelectedChat, setMessages, setLoadingMessages],
+  );
+
   const actions = useChatActions({
     user,
     logout: async () => {
@@ -121,7 +131,7 @@ function ChatPage() {
     chats,
     setChats,
     selectedChat,
-    setSelectedChat,
+    setSelectedChat: handleSelectChat,
     setSearch,
     setSearchResults,
     setMessages,
@@ -207,7 +217,7 @@ function ChatPage() {
                   handleAccessChat={actions.handleAccessChat}
                   chats={chats}
                   selectedChat={selectedChat}
-                  setSelectedChat={setSelectedChat}
+                  setSelectedChat={handleSelectChat}
                   user={user}
                   getChatName={getChatName}
                   getOtherUser={getOtherUser}
