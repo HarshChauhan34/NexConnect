@@ -35,13 +35,28 @@ const envAllowedOrigins = [
 ].filter(Boolean);
 
 const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
+const allowVercelPreviews =
+  process.env.ALLOW_VERCEL_PREVIEWS?.toLowerCase() !== "false";
+
+const isAllowedOrigin = (origin) => {
+  if (allowedOrigins.includes(origin)) return true;
+
+  if (
+    allowVercelPreviews &&
+    /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
 const corsOptions = {
   origin(origin, callback) {
     // Allow non-browser clients (no Origin header) like Postman/cURL.
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
 
