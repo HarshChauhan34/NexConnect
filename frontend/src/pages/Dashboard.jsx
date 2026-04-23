@@ -273,13 +273,13 @@ function Dashboard() {
             ))}
           </section>
 
-          <section className="grid gap-5 lg:grid-cols-3">
-            <article className="rounded-2xl border border-white/60 bg-white/80 p-5 shadow-md backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/65 lg:col-span-2">
+          <section className="grid min-w-0 gap-5 lg:grid-cols-3">
+            <article className="min-w-0 rounded-2xl border border-white/60 bg-white/80 p-5 shadow-md backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/65 lg:col-span-2">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Weekly Activity
               </h2>
-              <div className="mt-4 h-72">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="mt-4 h-72 min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260}>
                   <AreaChart data={trend}>
                     <defs>
                       <linearGradient id="messagesFill" x1="0" y1="0" x2="0" y2="1">
@@ -307,12 +307,12 @@ function Dashboard() {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-white/60 bg-white/80 p-5 shadow-md backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/65">
+            <article className="min-w-0 rounded-2xl border border-white/60 bg-white/80 p-5 shadow-md backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/65">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 Role Distribution
               </h2>
-              <div className="mt-4 h-72">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="mt-4 h-72 min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260}>
                   <PieChart>
                     <Pie
                       data={roleDistribution}

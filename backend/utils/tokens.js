@@ -20,10 +20,14 @@ export const hashToken = (token) =>
 
 export const getRefreshTokenCookieOptions = () => {
   const isProd = process.env.NODE_ENV === "production";
+  const usePartitionedCookie =
+    isProd && process.env.COOKIE_PARTITIONED?.toLowerCase() !== "false";
+
   return {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? "none" : "lax",
+    ...(usePartitionedCookie ? { partitioned: true } : {}),
     maxAge: parseRefreshLifetimeMs(),
     path: "/api/auth",
   };
