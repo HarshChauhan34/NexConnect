@@ -1,0 +1,55 @@
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user (always role=user)
+      requestBody:
+        required: true
+      responses:
+        "201":
+          description: User registered
+  /auth/login:
+    post:
+      summary: Login and start session
+      responses:
+        "200":
+          description: Authenticated
+  /auth/refresh:
+    post:
+      summary: Refresh access token via httpOnly cookie
+      responses:
+        "200":
+          description: Session refreshed
+  /auth/logout:
+    post:
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+  /dashboard/summary:
+    get:
+      summary: Dashboard analytics summary
+      responses:
+        "200":
+          description: Summary payload
+  /events:
+    get:
+      summary: List events
+      responses:
+        "200":
+          description: Events list
+    post:
+      summary: Create event (admin/organizer)
+      responses:
+        "201":
+          description: Event created
+  /products:
+    get:
+      summary: List products
+      responses:
+        "200":
+          description: Products list
+    post:
+      summary: Create product (admin/organizer)
+      responses:
+        "201":
+          description: Product created
