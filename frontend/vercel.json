@@ -1,5 +1,7 @@
 {
   "rewrites": [
+    { "source": "/socket.io", "destination": "https://nexconnect.onrender.com/socket.io" },
+    { "source": "/socket.io/(.*)", "destination": "https://nexconnect.onrender.com/socket.io/$1" },
     { "source": "/api/(.*)", "destination": "https://nexconnect.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
