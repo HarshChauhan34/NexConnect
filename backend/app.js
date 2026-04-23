@@ -18,11 +18,40 @@ import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 const app = express();
 const server = http.createServer(app);
 
+const defaultAllowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5173",
+];
+
+const envAllowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  ...(process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+].filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser clients (no Origin header) like Postman/cURL.
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
 app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  }),
+  cors(corsOptions),
 );
 
 app.use(express.json());
@@ -55,10 +84,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST"],
-  },
+  cors: { ...corsOptions, methods: ["GET", "POST"] },
   pingTimeout: 60000,
 });
 
