@@ -37,6 +37,7 @@ function ChatWindow({
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
+  const [previewImageMessage, setPreviewImageMessage] = useState(null);
 
   const messagesContainerRef = useRef(null);
   const previousMessagesLengthRef = useRef(0);
@@ -177,7 +178,10 @@ function ChatWindow({
 
     const handleWindowScroll = () => setContextMenu(null);
     const handleEscape = (e) => {
-      if (e.key === "Escape") setContextMenu(null);
+      if (e.key === "Escape") {
+        setContextMenu(null);
+        setPreviewImageMessage(null);
+      }
     };
 
     document.addEventListener("click", handleClickOutside);
@@ -329,7 +333,9 @@ function ChatWindow({
 
               {selectedChat.isGroupChat && (
                 <button
+                  type="button"
                   onClick={() => setShowManageModal(!showManageModal)}
+                  aria-label="Manage group members and settings"
                   className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Manage Group
@@ -409,16 +415,37 @@ function ChatWindow({
 
                           {msg.messageType === "image" ? (
                             <div className="space-y-3">
-                              <img
-                                src={getOpenableFileUrl(msg.fileUrl)}
-                                alt={msg.fileName || "chat image"}
-                                className="max-h-80 w-full rounded-2xl border border-slate-300 object-cover dark:border-slate-700"
-                              />
+                              <button
+                                type="button"
+                                onClick={() => setPreviewImageMessage(msg)}
+                                className="block w-full"
+                              >
+                                <img
+                                  src={getOpenableFileUrl(msg.fileUrl)}
+                                  alt={msg.fileName || "chat image"}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="max-h-80 w-full rounded-2xl border border-slate-300 object-cover transition hover:opacity-95 dark:border-slate-700"
+                                />
+                              </button>
                               {msg.fileName && (
                                 <p className="break-all text-xs text-slate-500 dark:text-slate-300">
                                   {msg.fileName}
                                 </p>
                               )}
+                              <div className="flex flex-wrap gap-2 text-sm">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenFile(msg, false)}
+                                  className={`rounded-xl px-3 py-1.5 transition ${
+                                    isMine
+                                      ? "bg-white/20 text-white hover:bg-white/30"
+                                      : "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-200 dark:hover:bg-blue-500/30"
+                                  }`}
+                                >
+                                  Open
+                                </button>
+                              </div>
                               {msg.content?.trim() && (
                                 <p className="break-words text-[15px] leading-relaxed">
                                   {msg.content}
@@ -454,17 +481,6 @@ function ChatWindow({
                                     }`}
                                   >
                                     Open
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenFile(msg, true)}
-                                    className={`rounded-xl px-3 py-1.5 transition ${
-                                      isMine
-                                        ? "bg-white/20 text-white hover:bg-white/30"
-                                        : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-200 dark:hover:bg-emerald-500/30"
-                                    }`}
-                                  >
-                                    Download
                                   </button>
                                 </div>
                               </div>
@@ -605,6 +621,7 @@ function ChatWindow({
                         key={emoji}
                         type="button"
                         onClick={() => handleContextReaction(emoji)}
+                        aria-label={`React with ${emoji}`}
                         className="flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white text-xl transition hover:scale-[1.03] hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                       >
                         {emoji}
@@ -649,6 +666,39 @@ function ChatWindow({
                 </div>
               </div>
             )}
+
+            {previewImageMessage && (
+              <div
+                className="absolute inset-0 z-40 flex items-center justify-center bg-black/75 p-4"
+                onClick={() => setPreviewImageMessage(null)}
+              >
+                <div
+                  className="max-h-full w-full max-w-5xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <img
+                    src={getOpenableFileUrl(previewImageMessage.fileUrl)}
+                    alt={previewImageMessage.fileName || "chat image preview"}
+                    className="max-h-[80vh] w-full rounded-2xl object-contain"
+                  />
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <p className="truncate text-sm text-white/90">
+                      {previewImageMessage.fileName || "Image"}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImageMessage(null)}
+                        className="rounded-xl bg-white/20 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-white/30"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input */}
@@ -661,6 +711,7 @@ function ChatWindow({
                 {pendingAttachment ? "Change File" : "Attach File"}
                 <input
                   type="file"
+                  aria-label="Attach image or file"
                   className="hidden"
                   onChange={handleFileUpload}
                   disabled={uploadingFile || sendingMessage}
@@ -691,6 +742,7 @@ function ChatWindow({
                 <input
                   type="text"
                   placeholder="Type a message..."
+                  aria-label="Type your message"
                   value={messageText}
                   onChange={handleTyping}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-500 outline-none transition focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"

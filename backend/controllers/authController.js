@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import {
   createRefreshTokenValue,
   generateAccessToken,
+  getAccessTokenCookieOptions,
   getRefreshTokenCookieOptions,
   hashToken,
 } from "../utils/tokens.js";
@@ -46,9 +47,20 @@ const setRefreshCookie = (res, refreshToken) => {
   res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
 };
 
+const setAccessCookie = (res, accessToken) => {
+  res.cookie("accessToken", accessToken, getAccessTokenCookieOptions());
+};
+
 const clearRefreshCookie = (res) => {
   res.clearCookie("refreshToken", {
     ...getRefreshTokenCookieOptions(),
+    maxAge: undefined,
+  });
+};
+
+const clearAccessCookie = (res) => {
+  res.clearCookie("accessToken", {
+    ...getAccessTokenCookieOptions(),
     maxAge: undefined,
   });
 };
@@ -63,6 +75,7 @@ const issueAuthSession = async (res, user) => {
   user.refreshTokenExpire = getRefreshExpiryDate();
   await user.save({ validateBeforeSave: false });
 
+  setAccessCookie(res, accessToken);
   setRefreshCookie(res, refreshToken);
   return serializeUser(user, accessToken);
 };
@@ -185,6 +198,7 @@ export const refreshSession = async (req, res) => {
     try {
       decoded = jwt.verify(refreshToken, getRefreshTokenSecret());
     } catch {
+      clearAccessCookie(res);
       clearRefreshCookie(res);
       return res.status(401).json({ message: "Invalid refresh token" });
     }
@@ -194,6 +208,7 @@ export const refreshSession = async (req, res) => {
     );
 
     if (!user || !user.refreshTokenHash || !user.refreshTokenExpire) {
+      clearAccessCookie(res);
       clearRefreshCookie(res);
       return res.status(401).json({ message: "Session expired" });
     }
@@ -202,11 +217,13 @@ export const refreshSession = async (req, res) => {
       user.refreshTokenHash = null;
       user.refreshTokenExpire = null;
       await user.save({ validateBeforeSave: false });
+      clearAccessCookie(res);
       clearRefreshCookie(res);
       return res.status(401).json({ message: "Session expired" });
     }
 
     if (user.refreshTokenHash !== hashToken(refreshToken)) {
+      clearAccessCookie(res);
       clearRefreshCookie(res);
       return res.status(401).json({ message: "Refresh token mismatch" });
     }
@@ -214,6 +231,7 @@ export const refreshSession = async (req, res) => {
     const payload = await issueAuthSession(res, user);
     return res.json(payload);
   } catch (error) {
+    clearAccessCookie(res);
     clearRefreshCookie(res);
     return res.status(500).json({ message: error.message });
   }
@@ -231,9 +249,11 @@ export const logoutUser = async (req, res) => {
       ).catch(() => {});
     }
 
+    clearAccessCookie(res);
     clearRefreshCookie(res);
     return res.json({ message: "Logged out successfully" });
   } catch (error) {
+    clearAccessCookie(res);
     clearRefreshCookie(res);
     return res.status(500).json({ message: error.message });
   }

@@ -13,10 +13,16 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import { cacheFor } from "./middleware/cacheMiddleware.js";
+import { createRateLimiter } from "./middleware/rateLimitMiddleware.js";
+import { requestContext } from "./middleware/requestContextMiddleware.js";
+import { sanitizeInput } from "./middleware/sanitizeInputMiddleware.js";
+import { securityHeaders } from "./middleware/securityHeadersMiddleware.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 const app = express();
 const server = http.createServer(app);
+app.set("trust proxy", 1);
 
 const defaultAllowedOrigins = [
   "http://localhost:3000",
@@ -69,9 +75,32 @@ app.use(
   cors(corsOptions),
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(requestContext);
+app.use(securityHeaders);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
+app.use(sanitizeInput);
+
+const globalLimiter = createRateLimiter({
+  maxRequests: Number.parseInt(process.env.RATE_LIMIT_MAX || "400", 10),
+  windowMs: Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || "60000", 10),
+  message: "Too many requests from this client. Slow down and try again.",
+});
+
+const authLimiter = createRateLimiter({
+  maxRequests: Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX || "35", 10),
+  windowMs: Number.parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || "60000", 10),
+  message: "Too many authentication attempts. Please retry in a minute.",
+});
+
+const messageLimiter = createRateLimiter({
+  maxRequests: Number.parseInt(process.env.MESSAGE_RATE_LIMIT_MAX || "180", 10),
+  windowMs: Number.parseInt(process.env.MESSAGE_RATE_LIMIT_WINDOW_MS || "60000", 10),
+  message: "Message throughput exceeded. Please wait briefly.",
+});
+
+app.use(globalLimiter);
 
 const swaggerSpec = swaggerJsdoc({
   definition: {
@@ -90,13 +119,21 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
+app.get("/healthz", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/chat", chatRoutes);
-app.use("/api/message", messageRoutes);
-app.use("/api/events", eventRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/message", messageLimiter, messageRoutes);
+app.use("/api/events", cacheFor(60), eventRoutes);
+app.use("/api/products", cacheFor(60), productRoutes);
+app.use("/api/dashboard", cacheFor(30), dashboardRoutes);
 
 const io = new Server(server, {
   cors: { ...corsOptions, methods: ["GET", "POST"] },

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { BarChart3, CalendarRange, MessageSquareText, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
+import Seo from "../components/system/Seo";
 import { useAuth } from "../context/useAuth";
 
 const features = [
@@ -38,6 +39,10 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-app-gradient">
+      <Seo
+        title="NexConnect | Secure Real-time Team Collaboration"
+        description="Modern, responsive collaboration with real-time chat, role-based dashboards, and workflow modules."
+      />
       <Navbar />
 
       <section className="relative overflow-hidden px-4 pb-20 pt-16 sm:px-6 lg:px-8">

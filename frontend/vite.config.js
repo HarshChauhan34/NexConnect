@@ -5,7 +5,10 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
+    target: "es2020",
     sourcemap: false,
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096,
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {

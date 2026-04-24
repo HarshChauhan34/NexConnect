@@ -2,22 +2,32 @@ import { createContext, useEffect, useMemo, useState } from "react";
 import { logoutUser, refreshSession } from "../services/authService";
 
 const AuthContext = createContext();
+const STORAGE_KEY = "user";
+
+const readStoredUser = () => {
+  try {
+    const sessionUser = sessionStorage.getItem(STORAGE_KEY);
+    if (sessionUser) return JSON.parse(sessionUser);
+
+    // Backward compatibility: migrate old localStorage session to sessionStorage.
+    const legacyUser = localStorage.getItem(STORAGE_KEY);
+    if (!legacyUser) return null;
+
+    sessionStorage.setItem(STORAGE_KEY, legacyUser);
+    localStorage.removeItem(STORAGE_KEY);
+    return JSON.parse(legacyUser);
+  } catch {
+    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(
-    (() => {
-      try {
-        const saved = localStorage.getItem("user");
-        return saved ? JSON.parse(saved) : null;
-      } catch {
-        localStorage.removeItem("user");
-        return null;
-      }
-    })(),
-  );
+  const [user, setUser] = useState(readStoredUser);
 
   const login = (userData) => {
-    localStorage.setItem("user", JSON.stringify(userData));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
     setUser(userData);
   };
 
@@ -25,17 +35,17 @@ export const AuthProvider = ({ children }) => {
     let isMounted = true;
 
     const bootstrapSession = async () => {
-      const saved = localStorage.getItem("user");
+      const saved = sessionStorage.getItem(STORAGE_KEY);
       if (!saved) return;
 
       try {
         const response = await refreshSession();
         if (isMounted) {
-          localStorage.setItem("user", JSON.stringify(response.data));
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(response.data));
           setUser(response.data);
         }
       } catch {
-        localStorage.removeItem("user");
+        sessionStorage.removeItem(STORAGE_KEY);
         if (isMounted) setUser(null);
       }
     };
@@ -52,7 +62,8 @@ export const AuthProvider = ({ children }) => {
     } catch {
       // ignore client-side cleanup fallback
     } finally {
-      localStorage.removeItem("user");
+      sessionStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY);
       setUser(null);
     }
   };

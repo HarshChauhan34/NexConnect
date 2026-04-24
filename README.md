@@ -338,3 +338,16 @@ npm run test:e2e
 - Expand Swagger docs with detailed schemas/examples for every endpoint.
 - Add frontend e2e browser tests (Playwright/Cypress) for auth/chat/dashboard flows.
 - Add CI pipeline to run lint/tests/build automatically on PRs.
+
+---
+
+## 13) Production Hardening (Implemented)
+
+- Backend security headers, request IDs, sanitized input middleware, and rate limiting.
+- Auth flow hardened with `httpOnly` access + refresh cookies.
+- Improved API resiliency with retry/backoff for transient failures.
+- Frontend error boundary + route skeleton fallback.
+- SEO meta + Open Graph tags in `index.html`.
+- Session data moved from persistent `localStorage` to `sessionStorage`.
+- CI workflow added at `.github/workflows/ci.yml`.
+- Deployment checklist added at `docs/production-checklist.md`.

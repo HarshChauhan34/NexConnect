@@ -194,7 +194,9 @@ function ChatPage() {
             </span>
 
             <button
+              type="button"
               onClick={() => setShowGroupModal(true)}
+              aria-label="Create a new group chat"
               className="rounded-xl bg-linear-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition hover:-translate-y-0.5"
             >
               Create Group
