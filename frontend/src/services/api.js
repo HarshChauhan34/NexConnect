@@ -1,4 +1,8 @@
 import axios from "axios";
+import {
+  AUTH_SESSION_EXPIRED_EVENT,
+  USER_STORAGE_KEY,
+} from "../constants/auth";
 
 const envApiUrl = import.meta.env.VITE_API_URL?.trim();
 const isAbsoluteUrl = /^https?:\/\//i.test(envApiUrl || "");
@@ -19,7 +23,14 @@ const RETRIABLE_METHODS = new Set(["get", "head", "options"]);
 const RETRIABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
 const RETRY_LIMIT = Number.parseInt(import.meta.env.VITE_API_RETRY_LIMIT || "2", 10);
 const RETRY_BASE_DELAY_MS = Number.parseInt(import.meta.env.VITE_API_RETRY_DELAY_MS || "350", 10);
-const USER_STORAGE_KEY = "user";
+const clearStoredSession = () => {
+  sessionStorage.removeItem(USER_STORAGE_KEY);
+  localStorage.removeItem(USER_STORAGE_KEY);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
+  }
+};
 
 const API = axios.create({
   baseURL: API_BASE_URL,
@@ -92,8 +103,7 @@ API.interceptors.response.use(
         processQueue(null, newUser.token);
         return API(originalRequest);
       } catch (refreshError) {
-        sessionStorage.removeItem(USER_STORAGE_KEY);
-        localStorage.removeItem(USER_STORAGE_KEY);
+        clearStoredSession();
         processQueue(refreshError, null);
         return Promise.reject(refreshError);
       } finally {

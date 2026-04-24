@@ -1,24 +1,27 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { logoutUser, refreshSession } from "../services/authService";
+import {
+  AUTH_SESSION_EXPIRED_EVENT,
+  USER_STORAGE_KEY,
+} from "../constants/auth";
 
 const AuthContext = createContext();
-const STORAGE_KEY = "user";
 
 const readStoredUser = () => {
   try {
-    const sessionUser = sessionStorage.getItem(STORAGE_KEY);
+    const sessionUser = sessionStorage.getItem(USER_STORAGE_KEY);
     if (sessionUser) return JSON.parse(sessionUser);
 
     // Backward compatibility: migrate old localStorage session to sessionStorage.
-    const legacyUser = localStorage.getItem(STORAGE_KEY);
+    const legacyUser = localStorage.getItem(USER_STORAGE_KEY);
     if (!legacyUser) return null;
 
-    sessionStorage.setItem(STORAGE_KEY, legacyUser);
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.setItem(USER_STORAGE_KEY, legacyUser);
+    localStorage.removeItem(USER_STORAGE_KEY);
     return JSON.parse(legacyUser);
   } catch {
-    sessionStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
     return null;
   }
 };
@@ -27,7 +30,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(readStoredUser);
 
   const login = (userData) => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+    sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
     setUser(userData);
   };
 
@@ -35,17 +38,17 @@ export const AuthProvider = ({ children }) => {
     let isMounted = true;
 
     const bootstrapSession = async () => {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
+      const saved = sessionStorage.getItem(USER_STORAGE_KEY);
       if (!saved) return;
 
       try {
         const response = await refreshSession();
         if (isMounted) {
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(response.data));
+          sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.data));
           setUser(response.data);
         }
       } catch {
-        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(USER_STORAGE_KEY);
         if (isMounted) setUser(null);
       }
     };
@@ -56,14 +59,25 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
+  }, []);
+
   const logout = async () => {
     try {
       await logoutUser();
     } catch {
       // ignore client-side cleanup fallback
     } finally {
-      sessionStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(USER_STORAGE_KEY);
       setUser(null);
     }
   };
