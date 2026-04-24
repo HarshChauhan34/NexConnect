@@ -32,6 +32,11 @@ const clearStoredSession = () => {
   }
 };
 
+const hasStoredSession = () =>
+  Boolean(
+    sessionStorage.getItem(USER_STORAGE_KEY) || localStorage.getItem(USER_STORAGE_KEY),
+  );
+
 const API = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
@@ -76,6 +81,10 @@ API.interceptors.response.use(
       !originalRequest?.url?.includes("/auth/register") &&
       !originalRequest?.url?.includes("/auth/refresh")
     ) {
+      if (!hasStoredSession()) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           refreshQueue.push({
