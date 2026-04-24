@@ -5,6 +5,7 @@ backend/node_modules/
 frontend/.env
 frontend/.env.local
 backend/.env
+backend/.env.example
 
 dist/
 build/
